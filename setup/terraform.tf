@@ -113,17 +113,6 @@ resource "aws_instance" "web" {
   }
   tags { Name = "${local.name}" Terraform = "${local.name}" }
   volume_tags { Name = "${local.name}" }
-  connection {
-    user = "centos"
-    private_key = "${file("~/.ssh/aws_${var.app}")}"
-  }
-  provisioner "file" {
-    source = "../config/"
-    destination = "/var/${var.app}/config"
-  }
-  provisioner "remote-exec" {
-    inline = ["/var/${var.app}/setup/production-provision.sh"]
-  }
   lifecycle { create_before_destroy = true }
 }
 
@@ -136,6 +125,23 @@ resource "aws_eip_association" "web_address" {
 resource "aws_eip" "web" {
   vpc = true
   tags { Name = "${local.name}" Terraform = "${local.name}" }
+}
+
+resource "null_resource" "provision" {
+  triggers { web = "${aws_instance.web.id}" }
+  depends_on = ["aws_eip_association.web_address"]
+  connection {
+    host = "${aws_eip.web.public_ip}"
+    user = "centos"
+    private_key = "${file("~/.ssh/aws_${var.app}")}"
+  }
+  provisioner "file" {
+    source = "../config/"
+    destination = "/var/${var.app}/config"
+  }
+  provisioner "remote-exec" {
+    inline = ["/var/${var.app}/setup/production-provision.sh"]
+  }
 }
 
 output "web-address" { value = "${aws_eip_association.web_address.public_ip}" }
