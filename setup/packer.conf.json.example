@@ -1,0 +1,7 @@
+{
+  "aws_access_key": "...",
+  "aws_secret_key": "...",
+  "aws_instance_type": "t3.nano",
+  
+  "app": "shimmer"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "shimmer",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.17.1",
+    "helmet": "^3.18.0",
+    "oidc-provider": "^6.0.0-alpha.8"
+  },
+  "devDependencies": {}
+}
