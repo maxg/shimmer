@@ -11,7 +11,7 @@ rpm --query nodesource-release-el7-1.noarch || rpm --install --nosignature https
 
 # Yum Packages
 yum -y update
-yum -y install epel-release centos-release-scl zip unzip gcc-c++ make vim
+yum -y install epel-release centos-release-scl yum-cron zip unzip gcc-c++ make vim
 yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth.x86_64 nodejs
 
 # Apache config

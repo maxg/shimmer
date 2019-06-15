@@ -41,7 +41,11 @@ ExecStart=/var/$APP/server/$APP
 WantedBy=multi-user.target
 EOD
 
-# TODO security updates
+# Security updates (all packages, CentOS does not provide security metadata)
+sed -e 's/^\(update_cmd *= *\).*/\1default/' \
+    -e 's/^\(download_updates *= *\)no/\1yes/' \
+    -e 's/^\(apply_updates *= *\)no/\1yes/' -i /etc/yum/yum-cron.conf
+systemctl enable yum-cron
 
 # Rotate away logs from provisioning
 logrotate -f /etc/logrotate.conf 
