@@ -113,6 +113,14 @@ resource "aws_instance" "web" {
   }
   tags { Name = "${local.name}" Terraform = "${local.name}" }
   volume_tags { Name = "${local.name}" }
+  connection {
+    user = "centos"
+    private_key = "${file("~/.ssh/aws_${var.app}")}"
+  }
+  provisioner "file" {
+    source = "../config/"
+    destination = "/var/${var.app}/config"
+  }
   lifecycle { create_before_destroy = true }
 }
 
@@ -134,10 +142,6 @@ resource "null_resource" "provision" {
     host = "${aws_eip.web.public_ip}"
     user = "centos"
     private_key = "${file("~/.ssh/aws_${var.app}")}"
-  }
-  provisioner "file" {
-    source = "../config/"
-    destination = "/var/${var.app}/config"
   }
   provisioner "remote-exec" {
     inline = ["/var/${var.app}/setup/production-provision.sh"]
