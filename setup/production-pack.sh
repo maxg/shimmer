@@ -47,5 +47,35 @@ sed -e 's/^\(update_cmd *= *\).*/\1default/' \
     -e 's/^\(apply_updates *= *\)no/\1yes/' -i /etc/yum/yum-cron.conf
 systemctl enable yum-cron
 
+# Log to CloudWatch
+rpm --install https://s3.amazonaws.com/amazoncloudwatch-agent/centos/amd64/latest/amazon-cloudwatch-agent.rpm
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOD
+{
+  "agent": { "run_as_user": "cwagent" },
+  "logs": { "logs_collected": { "files": { "collect_list": [
+    {
+      "file_path": "/var/log/messages",
+      "log_group_name": "/cwagent/$APP-messages",
+      "timestamp_format": "%b %d %H:%M:%S"
+    },
+    {
+      "file_path": "/var/log/shibboleth/transaction.log",
+      "log_group_name": "/cwagent/$APP-shibboleth-transaction-log",
+      "timestamp_format": "%Y-%m-%d %H:%M:%S"
+    },
+    {
+      "file_path": "/var/log/httpd/access_log",
+      "log_group_name": "/cwagent/$APP-httpd-access-log",
+      "timestamp_format": "%d/%b/%Y:%H:%M:%S %z"
+    },
+    {
+      "file_path": "/var/log/httpd/error_log",
+      "log_group_name": "/cwagent/$APP-httpd-error-log",
+      "timestamp_format": "%a %b %d %H:%M:%S"
+    }
+  ] } } }
+}
+EOD
+
 # Rotate away logs from provisioning
 logrotate -f /etc/logrotate.conf 

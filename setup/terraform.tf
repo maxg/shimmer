@@ -123,6 +123,7 @@ resource "aws_instance" "web" {
     volume_type = "gp2"
     delete_on_termination = false
   }
+  iam_instance_profile = aws_iam_instance_profile.web.name
   tags = {
     Name = local.name
     Terraform = local.name
@@ -143,10 +144,45 @@ resource "aws_instance" "web" {
   lifecycle { create_before_destroy = true }
 }
 
+data "aws_iam_policy_document" "assume_role_ec2" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "web" {
+  name = "${local.name}-web-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_ec2.json
+}
+
+data "aws_iam_policy_document" "web_access" {
+  statement {
+    actions = [
+      "logs:PutLogEvents", "logs:DescribeLogStreams", "logs:DescribeLogGroups", "logs:CreateLogStream", "logs:CreateLogGroup"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "web" {
+  name = "${local.name}-web-access"
+  role = aws_iam_role.web.id
+  policy = data.aws_iam_policy_document.web_access.json
+}
+
+resource "aws_iam_instance_profile" "web" {
+  name = "${local.name}-web-profile"
+  role = aws_iam_role.web.name
+  depends_on = [aws_iam_role_policy.web]
+}
+
 resource "aws_eip_association" "web_address" {
   instance_id = aws_instance.web.id
   allocation_id = aws_eip.web.id
-  lifecycle { create_before_destroy = true }
 }
 
 resource "aws_eip" "web" {
