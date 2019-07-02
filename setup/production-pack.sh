@@ -56,7 +56,7 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOD
     {
       "file_path": "/var/log/messages",
       "log_group_name": "/cwagent/$APP-messages",
-      "timestamp_format": "%b %d %H:%M:%S"
+      "timestamp_format": "%b %-d %H:%M:%S"
     },
     {
       "file_path": "/var/log/shibboleth/transaction.log",
