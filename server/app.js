@@ -53,6 +53,27 @@ const provider = new OidcProvider(`https://${shimmer_hostname}`, {
 });
 provider.proxy = true;
 
+function logEvent(event, accountable, clientable, err) {
+  let email = accountable && decodeAccount(accountable.accountId).email;
+  let client = clientable && clientable.clientId;
+  if (err) {
+    let error = util.inspect(Object.assign({}, err), { breakLength: Infinity, compact: Infinity });
+    console.error(event, JSON.stringify({ email, client, error }));
+  } else {
+    console.log(event, JSON.stringify({ email, client }));
+  }
+}
+
+for (let event of [ 'access_token.saved', 'authorization_code.saved', 'authorization_code.consumed' ]) {
+  provider.on(event, (obj) => logEvent(event, obj, obj));
+}
+for (let event of [ 'authorization.success', 'grant.success' ]) {
+  provider.on(event, (ctx) => logEvent(event, ctx.oidc.account, ctx.oidc.client));
+}
+for (let event of [ 'authorization.error', 'grant.error', 'userinfo.error' ]) {
+  provider.on(event, (ctx, err) => logEvent(event, ctx.oidc.account, ctx.oidc.client, err));
+}
+
 const app = express();
 app.set('view engine', 'ejs');
 app.use(helmet());
