@@ -30,7 +30,6 @@ touchstone=https://touchstone.mit.edu
       -e "s/%%ENCRYPTKEYPATH%%/sp-encrypt-key.pem/" \
       -e "s/%%ENCRYPTCERTPATH%%/sp-encrypt-cert.pem/" \
       -e "s/%%HANDLERSSL%%/true/" \
-      -e "s/%%HANDLERSSL%%/true/" \
       -e "s/%%COOKIEPROPS%%/https/" \
       -e "s/%%CONTACT_EMAIL%%/$shimmer_contact/" \
       -e "s/%%BEGIN_INCOMMON%%/<!--/" \
