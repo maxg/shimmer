@@ -2,6 +2,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
+const path = require('path');
 
 const ejs = require('ejs');
 const express = require('express');
@@ -88,6 +89,9 @@ app.set('view engine', 'ejs');
 app.use(helmet());
 
 app.get('/', (req, res, next) => res.render('index'));
+app.get('/favicon.ico', (req, res, next) => {
+  res.sendFile(path.join(__dirname, 'views/favicon.png'), { maxAge: 1000*60*60*24*7 });
+});
 
 app.get('/interaction/:uid', async (req, res, next) => {
   try {
