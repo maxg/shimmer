@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
 
+const ejs = require('ejs');
 const express = require('express');
 const helmet = require('helmet');
 
@@ -29,6 +30,10 @@ const clients = fs.readdirSync('../config/idp-clients')
                   .filter(f => f.endsWith('.json'))
                   .map(f => require(`../config/idp-clients/${f}`));
 
+const templates = Object.fromEntries([
+  'error',
+].map(f => [ f, ejs.compile(fs.readFileSync(`./views/${f}.ejs`, { encoding: 'utf-8' })) ]));
+
 const provider = new OidcProvider(`https://${shimmer_hostname}`, {
   clients,
   async findAccount(ctx, sub, token) {
@@ -49,6 +54,10 @@ const provider = new OidcProvider(`https://${shimmer_hostname}`, {
     short: { signed: true, secure: true, },
     long: { signed: true, secure: true, },
     keys: [ crypto.createHash('sha256').update(JSON.stringify(clients)).digest('hex') ],
+  },
+  async renderError(ctx, out, error) {
+    ctx.type = 'html';
+    ctx.body = templates.error({ out });
   },
 });
 provider.proxy = true;
