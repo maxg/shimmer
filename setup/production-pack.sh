@@ -36,6 +36,7 @@ After=network.target
 [Service]
 User=$APP
 ExecStart=/var/$APP/server/$APP
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
