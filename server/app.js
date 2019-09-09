@@ -98,6 +98,10 @@ app.get('/favicon.ico', (req, res, next) => {
 app.get('/interaction/:uid', async (req, res, next) => {
   try {
     let { 'x-shibboleth-eppn': email, 'x-shibboleth-displayname': name } = req.headers;
+    if ( ! email.endsWith(`@${shimmer_domain}`)) {
+      let err = { error: 'access_denied', error_description: `${shimmer_domain} required` };
+      return await provider.interactionFinished(req, res, err);
+    }
     let account = encodeAccount(email, name);
     await provider.interactionFinished(req, res, { login: { account }, consent: { } });
   } catch (err) { next(err); }
