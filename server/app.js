@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const util = require('util');
 
 const ejs = require('ejs');
 const express = require('express');
@@ -57,6 +58,7 @@ const provider = new OidcProvider(`https://${shimmer_hostname}`, {
     keys: [ crypto.createHash('sha256').update(JSON.stringify(clients)).digest('hex') ],
   },
   async renderError(ctx, out, error) {
+    logEvent('render_error', ctx.oidc.account, ctx.oidc.client, error);
     ctx.type = 'html';
     ctx.body = templates.error({ out });
   },
