@@ -94,6 +94,7 @@ app.get('/', (req, res, next) => res.render('index'));
 app.get('/favicon.ico', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'views/favicon.png'), { maxAge: 1000*60*60*24*7 });
 });
+app.get('/robots.txt', (req, res, next) => res.end('User-agent: *\nDisallow: /\n'));
 
 app.get('/interaction/:uid', async (req, res, next) => {
   try {
