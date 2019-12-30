@@ -1,7 +1,8 @@
-variable "app" { default = "shimmer" }
+variable "bucket" {}
+variable "key" {}
+variable "region" {}
 variable "access_key" {}
 variable "secret_key" {}
-variable "region" {}
 
 # terraform init -backend-config=terraform.tfvars
 terraform {
@@ -10,14 +11,8 @@ terraform {
 }
 
 locals {
-  name = "${var.app}${terraform.workspace == "default" ? "" : "-${terraform.workspace}"}"
-}
-
-data "external" "local_ip" {
-  program = ["sh", "-c", <<EOF
-echo '{"ip":"'$(dig +short @resolver1.opendns.com myip.opendns.com)'"}'
-EOF
-  ]
+  app = var.key
+  name = "${local.app}${terraform.workspace == "default" ? "" : "-${terraform.workspace}"}"
 }
 
 provider "aws" {
@@ -30,7 +25,7 @@ data "aws_ami" "web" {
   most_recent = true
   filter {
     name = "name"
-    values = ["${var.app}-*"]
+    values = ["${local.app}-*"]
   }
   owners = ["self"]
 }
@@ -67,6 +62,10 @@ resource "aws_subnet" "a" {
   }
 }
 
+data "aws_ssm_parameter" "admin_cidr_blocks" {
+  name = "/${var.bucket}/admin-cidr-blocks"
+}
+
 resource "aws_security_group" "web" {
   name = "${local.name}-security-web"
   vpc_id = aws_vpc.default.id
@@ -78,11 +77,7 @@ resource "aws_security_group" "web" {
     from_port = 22
     to_port = 22
     protocol = "tcp"
-    cidr_blocks = [
-      "18.0.0.0/9",
-      "128.30.0.0/15", "128.52.0.0/16",
-      "${data.external.local_ip.result.ip}/32"
-    ]
+    cidr_blocks = split(",", data.aws_ssm_parameter.admin_cidr_blocks.value)
   }
   
   ingress {
@@ -109,7 +104,7 @@ resource "aws_security_group" "web" {
 
 resource "aws_key_pair" "app" {
   key_name = local.name
-  public_key = file("~/.ssh/aws_${var.app}.pub")
+  public_key = file("~/.ssh/aws_${local.app}.pub")
 }
 
 resource "aws_instance" "web" {
@@ -135,11 +130,11 @@ resource "aws_instance" "web" {
     type = "ssh"
     host = self.public_ip
     user = "centos"
-    private_key = file("~/.ssh/aws_${var.app}")
+    private_key = file("~/.ssh/aws_${local.app}")
   }
   provisioner "file" {
     source = "../config/"
-    destination = "/var/${var.app}/config"
+    destination = "/var/${local.app}/config"
   }
   lifecycle { create_before_destroy = true }
 }
@@ -202,10 +197,10 @@ resource "null_resource" "provision" {
     type = "ssh"
     host = aws_eip.web.public_ip
     user = "centos"
-    private_key = file("~/.ssh/aws_${var.app}")
+    private_key = file("~/.ssh/aws_${local.app}")
   }
   provisioner "remote-exec" {
-    inline = ["/var/${var.app}/setup/production-provision.sh"]
+    inline = ["/var/${local.app}/setup/production-provision.sh"]
   }
 }
 
