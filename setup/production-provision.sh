@@ -12,6 +12,8 @@ source config/config.sh
 
 # Start Certbot
 sudo certbot --apache --non-interactive --agree-tos --email $shimmer_contact --domains $shimmer_hostname
+sudo sed --in-place '/<\/VirtualHost>/i SSLProtocol TLSv1.2' /etc/httpd/conf.d/shimmer-le-ssl.conf
+sudo systemctl restart httpd
 sudo systemctl --now enable certbot-renew.timer
 
 # Start Shibboleth
