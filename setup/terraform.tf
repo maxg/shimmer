@@ -185,6 +185,7 @@ resource "aws_iam_instance_profile" "web" {
 resource "aws_eip_association" "web_address" {
   instance_id = aws_instance.web.id
   allocation_id = aws_eip.web.id
+  lifecycle { create_before_destroy = true }
 }
 
 resource "aws_eip" "web" {
@@ -199,10 +200,9 @@ resource "null_resource" "provision" {
   triggers = {
     web = aws_instance.web.id
   }
-  depends_on = [aws_eip_association.web_address]
   connection {
     type = "ssh"
-    host = aws_eip.web.public_ip
+    host = aws_eip_association.web_address.public_ip
     user = "centos"
     private_key = file("~/.ssh/aws_${local.app}")
   }
