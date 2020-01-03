@@ -12,7 +12,10 @@ rpm --query nodesource-release-el7-1.noarch || rpm --install --nosignature https
 # Yum Packages
 yum -y update
 yum -y install epel-release centos-release-scl yum-cron zip unzip gcc-c++ make git vim
-yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth.x86_64 nodejs
+yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth.x86_64 nodejs python2-pip jq
+
+# AWS CLI
+pip install awscli --upgrade
 
 # Apache config
 cp httpd/shimmer.conf /etc/httpd/conf.d/

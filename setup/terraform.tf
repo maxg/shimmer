@@ -136,7 +136,10 @@ resource "aws_instance" "web" {
     source = "../config/"
     destination = "/var/${local.app}/config"
   }
-  lifecycle { create_before_destroy = true }
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [tags]
+  }
 }
 
 data "aws_iam_policy_document" "assume_role_ec2" {
@@ -155,6 +158,10 @@ resource "aws_iam_role" "web" {
 }
 
 data "aws_iam_policy_document" "web_access" {
+  statement {
+    actions = ["ec2:CreateTags"]
+    resources = ["arn:aws:ec2:${var.region}:*:instance/*"]
+  }
   statement {
     actions = [
       "logs:PutLogEvents", "logs:DescribeLogStreams", "logs:DescribeLogGroups", "logs:CreateLogStream", "logs:CreateLogGroup"

@@ -8,6 +8,14 @@ cd "$(dirname $0)"/..
 while [ ! -f /var/lib/cloud/instance/boot-finished ]; do sleep 2; done
 sleep 1
 
+# Output and tag SSH host key fingerprints
+identity=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document)
+export AWS_DEFAULT_REGION=$(jq -r .region <<< $identity)
+sudo grep --only-matching 'ec2: .*' /var/log/messages | sed -n '/BEGIN SSH/,/END/p' | tee /dev/fd/2 |
+grep --only-matching '.\+ .\+:.\+ .\+ (.\+)' |
+while read _ _ hash etc; do echo "Key=SSH ${etc/#*(/(},Value=$hash"; done |
+xargs -d "\n" aws ec2 create-tags --resources $(jq -r .instanceId <<< $identity) --tags
+
 source config/config.sh
 
 # Start Certbot
@@ -27,6 +35,3 @@ sudo systemctl --now enable amazon-cloudwatch-agent
 
 # Start daemon
 sudo systemctl --now enable shimmer
-
-# Output SSH host key fingerprints
-sudo grep --only-matching 'ec2:.*' /var/log/messages
