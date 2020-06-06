@@ -12,7 +12,17 @@ rpm --query nodesource-release-el7-1.noarch || rpm --install --nosignature https
 # Yum Packages
 yum -y update
 yum -y install epel-release centos-release-scl yum-cron zip unzip gcc-c++ make git vim
+yum -y install gcc openssl-devel tcp_wrappers-devel rpm-build
 yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth.x86_64 nodejs awscli jq
+
+# stunnel
+(
+  cd /tmp
+  curl -O https://www.stunnel.org/downloads/stunnel-5.56.tar.gz
+  touch stunnel.init stunnel.logrotate
+  rpmbuild -ta stunnel-5.*.tar.gz --define '_unpackaged_files_terminate_build 0'
+  yum -y install ~/rpmbuild/RPMS/x86_64/stunnel-5.*.el7.x86_64.rpm
+)
 
 # Apache config
 cp httpd/shimmer.conf /etc/httpd/conf.d/

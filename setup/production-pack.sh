@@ -22,6 +22,15 @@ chown -R $ADMIN:$ADMIN /var/$APP
 chown -R $ADMIN:$APP config
 chmod 770 config
 
+# Install AWS EFS mount helper
+(
+  cd /tmp
+  git clone https://github.com/aws/efs-utils
+  cd efs-utils
+  make rpm
+  yum -y install ./build/amazon-efs-utils*rpm
+)
+
 # Install Node.js packages
 (
   cd server

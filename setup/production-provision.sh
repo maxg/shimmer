@@ -2,6 +2,8 @@
 
 set -ex
 
+TLS_FS=$1
+
 cd "$(dirname $0)"/..
 
 # Wait for instance configuration to finish
@@ -17,6 +19,10 @@ while read _ _ hash etc; do echo "Key=SSH ${etc/#*(/(},Value=$hash"; done |
 xargs -d "\n" aws ec2 create-tags --resources $(jq -r .instanceId <<< $identity) --tags
 
 source config/config.sh
+
+# Mount TLS filesystem
+sudo tee --append /etc/fstab <<< "$TLS_FS"':/ /etc/letsencrypt efs context="system_u:object_r:etc_t:s0",tls,_netdev 0 0'
+sudo mount /etc/letsencrypt
 
 # Start Certbot
 sudo certbot --apache --non-interactive --agree-tos --email $shimmer_contact --domains $shimmer_hostname

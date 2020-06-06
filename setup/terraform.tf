@@ -32,6 +32,7 @@ data "aws_ami" "web" {
 
 resource "aws_vpc" "default" {
   cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
   tags = {
     Name = "${local.name}-vpc"
     Terraform = local.name
@@ -60,6 +61,51 @@ resource "aws_subnet" "a" {
     Name = "${local.name}-1"
     Terraform = local.name
   }
+}
+
+resource "aws_subnet" "c" {
+  vpc_id = aws_vpc.default.id
+  cidr_block = "10.0.3.0/24"
+  availability_zone = "${var.region}a"
+  tags = {
+    Name = "${local.name}-3"
+    Terraform = local.name
+  }
+}
+
+resource "aws_security_group" "nfs" {
+  name = "${local.name}-security-nfs"
+  vpc_id = aws_vpc.default.id
+  tags = {
+    Terraform = local.name
+  }
+  
+  ingress {
+    from_port = 2049
+    to_port = 2049
+    protocol = "tcp"
+    security_groups = [aws_security_group.web.id]
+  }
+  
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    security_groups = [aws_security_group.web.id]
+  }
+}
+
+resource "aws_efs_file_system" "tls" {
+  tags = {
+    Name = "${local.name}-tls"
+    Terraform = local.name
+  }
+}
+
+resource "aws_efs_mount_target" "tls" {
+  file_system_id = aws_efs_file_system.tls.id
+  subnet_id = aws_subnet.c.id
+  security_groups = [aws_security_group.nfs.id]
 }
 
 data "aws_ssm_parameter" "admin_cidr_blocks" {
@@ -209,7 +255,7 @@ resource "null_resource" "provision" {
     private_key = file("~/.ssh/aws_${local.app}")
   }
   provisioner "remote-exec" {
-    inline = ["/var/${local.app}/setup/production-provision.sh"]
+    inline = ["/var/${local.app}/setup/production-provision.sh ${aws_efs_file_system.tls.id}"]
   }
 }
 
