@@ -9,6 +9,7 @@ cd /vagrant
   [ -f config.sh ] || cat > config.sh <<EOD
 export shimmer_domain=localhost
 export shimmer_hostname=10.18.6.60
+export shimmer_altnames=
 export shimmer_contact=shimmer@localhost
 EOD
 )

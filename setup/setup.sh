@@ -25,7 +25,9 @@ yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth
 )
 
 # Apache config
-cp httpd/shimmer.conf /etc/httpd/conf.d/
+sed -e "s/%%HOSTNAME%%/$shimmer_hostname/" \
+    -e "s/%%ALTNAMES%%/${shimmer_altnames//,/ }/" \
+  < httpd/shimmer.conf > /etc/httpd/conf.d/shimmer.conf
 
 # Shibboleth config
 touchstone=https://touchstone.mit.edu
