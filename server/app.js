@@ -103,8 +103,8 @@ app.get('/interaction/:uid', async (req, res, next) => {
       let err = { error: 'access_denied', error_description: `${shimmer_domain} required` };
       return await provider.interactionFinished(req, res, err);
     }
-    let account = encodeAccount(email, name);
-    await provider.interactionFinished(req, res, { login: { account }, consent: { } });
+    let accountId = encodeAccount(email, name);
+    await provider.interactionFinished(req, res, { login: { accountId }, consent: { } });
   } catch (err) { next(err); }
 });
 

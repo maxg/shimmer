@@ -21,7 +21,7 @@
     },
     "source_ami_filter": {
       "filters": {
-        "product-code": "aw0evgkw8e5c1q413zgy5pjce",
+        "product-code": "cvugziknvmxgqna9noibqnnsy",
         "product-code.type": "marketplace"
       },
       "owners": [ "aws-marketplace" ], "most_recent": true
