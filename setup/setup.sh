@@ -36,7 +36,7 @@ touchstone=https://touchstone.mit.edu
   curl -s -O $touchstone/config/shibboleth-sp-3/shibboleth2.xml.in
   curl -s -O $touchstone/config/shibboleth-sp-3/attribute-map.xml
   curl -s -O $touchstone/certs/mit-md-cert.pem
-  sed -e "s/%%HOSTNAME%%/$shimmer_hostname/" \
+  sed -e "s/%%HOSTNAME%%/${shimmer_entityname:-$shimmer_hostname}/" \
       -e "s/%%SIGNINGKEYPATH%%/sp-signing-key.pem/" \
       -e "s/%%SIGNINGCERTPATH%%/sp-signing-cert.pem/" \
       -e "s/%%ENCRYPTKEYPATH%%/sp-encrypt-key.pem/" \
