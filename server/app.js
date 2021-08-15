@@ -32,6 +32,8 @@ const clients = fs.readdirSync('../config/idp-clients')
                   .filter(f => f.endsWith('.json'))
                   .map(f => require(`../config/idp-clients/${f}`));
 
+const claims = { openid: [ 'sub' ], profile: [ 'name' ], email: [ 'email' ] };
+
 const templates = Object.fromEntries([
   'error',
 ].map(f => [ f, ejs.compile(fs.readFileSync(`./views/${f}.ejs`, { encoding: 'utf-8' })) ]));
@@ -51,7 +53,7 @@ const provider = new OidcProvider(`https://${shimmer_hostname}`, {
   features: {
     devInteractions: { enabled: false },
   },
-  claims: { openid: [ 'sub' ], profile: [ 'name' ], email: [ 'email' ] },
+  claims,
   cookies: {
     short: { signed: true, secure: true, },
     long: { signed: true, secure: true, },
@@ -107,11 +109,15 @@ app.get('/interaction/:uid', async (req, res, next) => {
       return await provider.interactionFinished(req, res, err);
     }
     let accountId = encodeAccount(email, name);
-    await provider.interactionFinished(req, res, { login: { accountId }, consent: { } });
+    const details = await provider.interactionDetails(req, res);
+    const grant = new provider.Grant({ accountId, clientId: details.params.client_id });
+    grant.addOIDCScope(Object.keys(claims).join(' '));
+    const grantId = await grant.save();
+    await provider.interactionFinished(req, res, { login: { accountId }, consent: { grantId } });
   } catch (err) { next(err); }
 });
 
-app.use(provider.callback);
+app.use(provider.callback());
 
 const server = http.createServer(app);
 server.listen(8008, 'localhost', () => console.log({ address: server.address() }));
