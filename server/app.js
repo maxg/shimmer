@@ -57,6 +57,9 @@ const provider = new OidcProvider(`https://${shimmer_hostname}`, {
     long: { signed: true, secure: true, },
     keys: [ crypto.createHash('sha256').update(JSON.stringify(clients)).digest('hex') ],
   },
+  pkce: {
+    required(ctx, client) { return false; },
+  },
   async renderError(ctx, out, error) {
     logEvent('render_error', ctx.oidc && ctx.oidc.account, ctx.oidc && ctx.oidc.client, error);
     ctx.type = 'html';
