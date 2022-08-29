@@ -18,7 +18,7 @@ yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth
 # stunnel
 (
   cd /tmp
-  curl -O https://www.stunnel.org/downloads/stunnel-5.59.tar.gz
+  curl -O https://www.stunnel.org/downloads/stunnel-5.65.tar.gz
   touch stunnel.init stunnel.logrotate
   rpmbuild -ta stunnel-5.*.tar.gz --define '_unpackaged_files_terminate_build 0'
   yum -y install ~/rpmbuild/RPMS/x86_64/stunnel-5.*.el7.x86_64.rpm
