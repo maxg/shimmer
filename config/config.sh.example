@@ -1,0 +1,5 @@
+export shimmer_domain=localhost
+export shimmer_hostname=localhost
+export shimmer_altnames=
+export shimmer_entityname=
+export shimmer_contact=shimmer@localhost

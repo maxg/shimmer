@@ -22,19 +22,34 @@ chown -R $ADMIN:$ADMIN /var/$APP
 chown -R $ADMIN:$APP config
 chmod 770 config
 
-# Install AWS EFS mount helper
-(
-  cd /tmp
-  git clone https://github.com/aws/efs-utils
-  cd efs-utils
-  make rpm
-  yum -y install ./build/amazon-efs-utils*rpm
-)
+# Packages
+dnf install -y amazon-efs-utils amazon-cloudwatch-agent rsyslog
 
-# Install Node.js packages
+# Install Certbot
+python3 -m venv /opt/certbot
+/opt/certbot/bin/pip install --upgrade pip
+/opt/certbot/bin/pip install certbot certbot-apache
+cat > /lib/systemd/system/certbot-renew.service <<EOD
+[Service]
+Type=oneshot
+ExecStart=/opt/certbot/bin/certbot -q renew
+PrivateTmp=true
+EOD
+cat > /lib/systemd/system/certbot-renew.timer <<EOD
+[Timer]
+OnCalendar=*-*-* 00:00:00
+RandomizedDelaySec=43200
+
+[Install]
+WantedBy=timers.target
+EOD
+
 (
   cd server
-  npm install --production
+  # Install Node.js packages
+  sudo -u $ADMIN npm ci
+  # Build app
+  sudo -u $ADMIN npm exec tsc
 )
 
 # Daemon
@@ -51,14 +66,7 @@ Restart=always
 WantedBy=multi-user.target
 EOD
 
-# Security updates (all packages, CentOS does not provide security metadata)
-sed -e 's/^\(update_cmd *= *\).*/\1default/' \
-    -e 's/^\(download_updates *= *\)no/\1yes/' \
-    -e 's/^\(apply_updates *= *\)no/\1yes/' -i /etc/yum/yum-cron.conf
-systemctl enable yum-cron
-
 # Log to CloudWatch
-rpm --install https://s3.amazonaws.com/amazoncloudwatch-agent/centos/amd64/latest/amazon-cloudwatch-agent.rpm
 cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOD
 {
   "agent": { "run_as_user": "cwagent" },
@@ -87,5 +95,14 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOD
 }
 EOD
 
+systemctl enable httpd
+
+systemctl restart firewalld
+firewall-cmd --add-service=http --permanent
+firewall-cmd --add-service=https --permanent
+systemctl restart firewalld
+
+timedatectl set-timezone America/New_York
+
 # Rotate away logs from provisioning
-logrotate -f /etc/logrotate.conf 
+logrotate -f /etc/logrotate.conf

@@ -1,0 +1,8 @@
+{
+  "image": "public.ecr.aws/amazonlinux/amazonlinux:2023",
+  "onCreateCommand": "setup/development.sh",
+  "mounts": [
+    "type=bind,source=${localEnv:HOME}/.ssh/aws_shimmer,target=/root/.ssh/aws_shimmer,ro",
+    "type=bind,source=${localEnv:HOME}/.ssh/aws_shimmer.pub,target=/root/.ssh/aws_shimmer.pub,ro"
+  ]
+}

@@ -2,27 +2,14 @@
 
 set -eux
 
-# Yum Repositories
-(
-  cd /etc/yum.repos.d
-  [ -f Shibboleth.repo ] || curl https://shibboleth.net/cgi-bin/sp_repo.cgi?platform=CentOS_7 > Shibboleth.repo
-)
-rpm --query nodesource-release-el7-1.noarch || rpm --install --nosignature https://rpm.nodesource.com/pub_12.x/el/7/x86_64/nodesource-release-el7-1.noarch.rpm
+# Repositories
+curl https://shibboleth.net/cgi-bin/sp_repo.cgi?platform=amazonlinux2023 > /etc/yum.repos.d/shibboleth.repo
 
-# Yum Packages
-yum -y update
-yum -y install epel-release centos-release-scl yum-cron zip unzip gcc-c++ make git vim
-yum -y install gcc openssl-devel tcp_wrappers-devel rpm-build
-yum -y install firewalld httpd mod_ssl certbot python2-certbot-apache shibboleth.x86_64 nodejs awscli jq
+# Packages
+dnf install -y git gzip tar vim
+dnf install -y firewalld httpd mod_ssl augeas-libs shibboleth-3.* nodejs-18.*
 
-# stunnel
-(
-  cd /tmp
-  curl -O https://www.stunnel.org/downloads/stunnel-5.65.tar.gz
-  touch stunnel.init stunnel.logrotate
-  rpmbuild -ta stunnel-5.*.tar.gz --define '_unpackaged_files_terminate_build 0'
-  yum -y install ~/rpmbuild/RPMS/x86_64/stunnel-5.*.el7.x86_64.rpm
-)
+npm install -g npm
 
 # Apache config
 sed -e "s/%%HOSTNAME%%/$shimmer_hostname/" \
@@ -48,14 +35,3 @@ touchstone=https://touchstone.mit.edu
       -e "s/%%END_INCOMMON%%/-->/" \
     < shibboleth2.xml.in > shibboleth2.xml
 )
-
-systemctl enable httpd
-systemctl restart httpd
-
-systemctl enable firewalld
-systemctl restart firewalld
-firewall-cmd --add-service=http --permanent
-firewall-cmd --add-service=https --permanent
-systemctl restart firewalld
-
-timedatectl set-timezone America/New_York 

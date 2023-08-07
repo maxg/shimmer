@@ -6,17 +6,15 @@ variable "secret_key" {}
 
 # terraform init -backend-config=terraform.tfvars
 terraform {
-  required_version = "~> 1.0.5"
+  required_version = "~> 1.5"
   required_providers {
     aws = { source = "hashicorp/aws" }
-    null = { source = "hashicorp/null" }
   }
   backend "s3" {}
 }
 
 locals {
   app = var.key
-  name = "${local.app}${terraform.workspace == "default" ? "" : "-${terraform.workspace}"}"
 }
 
 provider "aws" {
@@ -38,16 +36,16 @@ resource "aws_vpc" "default" {
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
   tags = {
-    Name = "${local.name}-vpc"
-    Terraform = local.name
+    Name = "${local.app}-vpc"
+    Terraform = local.app
   }
 }
 
 resource "aws_internet_gateway" "default" {
   vpc_id = aws_vpc.default.id
   tags = {
-    Name = "${local.name}-gateway"
-    Terraform = local.name
+    Name = "${local.app}-gateway"
+    Terraform = local.app
   }
 }
 
@@ -61,9 +59,10 @@ resource "aws_subnet" "a" {
   vpc_id = aws_vpc.default.id
   cidr_block = "10.0.1.0/24"
   availability_zone = "${var.region}a"
+  depends_on = [aws_route.internet_access]
   tags = {
-    Name = "${local.name}-1"
-    Terraform = local.name
+    Name = "${local.app}-1"
+    Terraform = local.app
   }
 }
 
@@ -72,16 +71,16 @@ resource "aws_subnet" "c" {
   cidr_block = "10.0.3.0/24"
   availability_zone = "${var.region}a"
   tags = {
-    Name = "${local.name}-3"
-    Terraform = local.name
+    Name = "${local.app}-3"
+    Terraform = local.app
   }
 }
 
 resource "aws_security_group" "nfs" {
-  name = "${local.name}-security-nfs"
+  name = "${local.app}-security-nfs"
   vpc_id = aws_vpc.default.id
   tags = {
-    Terraform = local.name
+    Terraform = local.app
   }
   
   ingress {
@@ -101,8 +100,8 @@ resource "aws_security_group" "nfs" {
 
 resource "aws_efs_file_system" "tls" {
   tags = {
-    Name = "${local.name}-tls"
-    Terraform = local.name
+    Name = "${local.app}-tls"
+    Terraform = local.app
   }
 }
 
@@ -117,10 +116,10 @@ data "aws_ssm_parameter" "admin_cidr_blocks" {
 }
 
 resource "aws_security_group" "web" {
-  name = "${local.name}-security-web"
+  name = "${local.app}-security-web"
   vpc_id = aws_vpc.default.id
   tags = {
-    Terraform = local.name
+    Terraform = local.app
   }
   
   ingress {
@@ -153,7 +152,7 @@ resource "aws_security_group" "web" {
 }
 
 resource "aws_key_pair" "app" {
-  key_name = local.name
+  key_name = local.app
   public_key = file("~/.ssh/aws_${local.app}.pub")
 }
 
@@ -169,17 +168,19 @@ resource "aws_instance" "web" {
     delete_on_termination = false
   }
   iam_instance_profile = aws_iam_instance_profile.web.name
+  user_data = data.template_cloudinit_config.config_web.rendered
   tags = {
-    Name = local.name
-    Terraform = local.name
+    Name = local.app
+    Terraform = local.app
   }
   volume_tags = {
-    Name = local.name
+    Name = local.app
+    Terraform = local.app
   }
   connection {
     type = "ssh"
     host = self.public_ip
-    user = "centos"
+    user = "ec2-user"
     private_key = file("~/.ssh/aws_${local.app}")
   }
   provisioner "file" {
@@ -203,7 +204,7 @@ data "aws_iam_policy_document" "assume_role_ec2" {
 }
 
 resource "aws_iam_role" "web" {
-  name = "${local.name}-web-role"
+  name = "${local.app}-web-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role_ec2.json
 }
 
@@ -221,13 +222,13 @@ data "aws_iam_policy_document" "web_access" {
 }
 
 resource "aws_iam_role_policy" "web" {
-  name = "${local.name}-web-access"
+  name = "${local.app}-web-access"
   role = aws_iam_role.web.id
   policy = data.aws_iam_policy_document.web_access.json
 }
 
 resource "aws_iam_instance_profile" "web" {
-  name = "${local.name}-web-profile"
+  name = "${local.app}-web-profile"
   role = aws_iam_role.web.name
   depends_on = [aws_iam_role_policy.web]
 }
@@ -241,25 +242,22 @@ resource "aws_eip_association" "web_address" {
 }
 
 resource "aws_eip" "web" {
-  vpc = true
+  domain = "vpc"
   tags = {
-    Name = local.name
-    Terraform = local.name
+    Name = local.app
+    Terraform = local.app
   }
 }
 
-resource "null_resource" "provision" {
-  triggers = {
-    web = aws_instance.web.id
-  }
-  connection {
-    type = "ssh"
-    host = aws_eip_association.web_address.public_ip
-    user = "centos"
-    private_key = file("~/.ssh/aws_${local.app}")
-  }
-  provisioner "remote-exec" {
-    inline = ["/var/${local.app}/setup/production-provision.sh ${aws_efs_file_system.tls.id}"]
+data "template_cloudinit_config" "config_web" {
+  part {
+    content_type = "text/cloud-config"
+    content = <<-EOF
+      runcmd:
+      - AWS_DEFAULT_REGION=${var.region}
+        TLS_FS=${aws_efs_mount_target.tls.file_system_id}
+        bash /var/${local.app}/setup/production-provision.sh
+    EOF
   }
 }
 
