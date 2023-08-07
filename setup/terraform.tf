@@ -236,8 +236,6 @@ resource "aws_iam_instance_profile" "web" {
 resource "aws_eip_association" "web_address" {
   instance_id = aws_instance.web.id
   allocation_id = aws_eip.web.id
-  # with create_before_destroy, re-association completes before EIP points to new instance
-  provisioner "local-exec" { command = "sleep 9" }
   lifecycle { create_before_destroy = true }
 }
 
