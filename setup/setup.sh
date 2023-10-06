@@ -9,7 +9,7 @@ curl https://shibboleth.net/cgi-bin/sp_repo.cgi?platform=amazonlinux2023 > /etc/
 dnf install -y git gzip tar vim
 dnf install -y firewalld httpd mod_ssl augeas-libs shibboleth-3.* nodejs-18.*
 
-npm install -g npm
+npm install -g npm@9
 
 # Apache config
 sed -e "s/%%HOSTNAME%%/$shimmer_hostname/" \
